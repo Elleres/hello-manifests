@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-app
+spec:
+  destination:
+    namespace: hello-app
+    server: https://kubernetes.default.svc
+  source:
+    path: /manifests
+    repoURL: Seu repositório Github!
+    targetRevision: HEAD
+  sources: []
+  project: default
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
+      enabled: true
