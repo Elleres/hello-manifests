@@ -2,7 +2,9 @@ name: Auto Merge PR
 
 on:
   pull_request_target:
-    types: [opened, synchronize] 
+    types: [opened, synchronize]
+    branches:
+        - 'main'
   workflow_dispatch:
 
 jobs:
@@ -14,8 +16,8 @@ jobs:
       contents: write 
 
     steps:
-      - name: Check PR Title
-        if: startsWith(github.event.pull_request.title, 'Atualiza a imagem hello-app para a versão')
+      - name: Check PR Branch
+        if: startsWith(github.event.pull_request.head.ref, 'update-hello-app-image-')
         run: |
           echo "PR title matches pattern. Proceeding with auto-merge setup."
 
@@ -25,3 +27,11 @@ jobs:
           GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }} 
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge "$PR_URL" --auto --squash
+
+      - name: Delete Head Branch
+        env:
+          GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          echo "Attempting to delete branch $HEAD_BRANCH"
+          gh branch delete "$HEAD_BRANCH" --force
