@@ -182,6 +182,4 @@ Ao entrar no ArgoCD, clique em Create Application e clique para editar como yaml
 
 ![](/images/image.png)
 
-Assim, sua aplicação estará rodando no kubernetes. Para acessá-la, use o comando abaixo e acesse em **http://localhost:8080**
-
-```kubectl port-forward svc/hello-app-service 800:8080 -n hello-app```
+Assim, sua aplicação estará rodando no kubernetes. Você deve acessá-la pelo load balancer. Para isso, entre em **http://localhost:8080**.
