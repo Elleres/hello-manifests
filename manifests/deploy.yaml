@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: hello-app-container
-        image: gelleres/hello-app:12
+        image: gelleres/hello-app:13
         ports:
         - containerPort: 80
 ---
