@@ -16,22 +16,8 @@ jobs:
       contents: write 
 
     steps:
-      - name: Check PR Branch
-        if: startsWith(github.event.pull_request.head.ref, 'update-hello-app-image-')
-        run: |
-          echo "PR title matches pattern. Proceeding with auto-merge setup."
-
       - name: Enable Auto-Merge
-        if: steps.check-title.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }} 
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge "$PR_URL" --auto --squash
-
-      - name: Delete Head Branch
-        env:
-          GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-        run: |
-          echo "Attempting to delete branch $HEAD_BRANCH"
-          gh branch delete "$HEAD_BRANCH" --force
