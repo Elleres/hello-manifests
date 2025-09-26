@@ -68,9 +68,14 @@ Com isso, o repositório da aplicação está pronto, faltando somente o código
 
 ### Criando o repositório de manifest
 
-Crie mais um repositório público, dessa vez com o nome de **hello-manifests**. Não será necessário adicionar segredos nesse repositório.
+Crie mais um repositório público, dessa vez com o nome de **hello-manifests**. Além disso, você precisará habilitar a opção abaixo em **Settings > General > Automatically delete head branch** e adicionar o segredo abaixo.
 
-## Etapa 3: Configurando a aplicação
+- MANIFEST_REPO_PAT: O Personal Access Token que criamos no Github.
+
+![](images/image5.png)
+Dessa forma, quando for feito um merge nesse repositório a branch será deletada automaticamente.
+
+## Etapa 3: Configurando o repositório da aplicação
 Para fazer esse passo, siga como base o repositório https://github.com/Elleres/hello-app. Nele tem todos os arquivos que você precisa para fazer a aplicação rodar.
 
 Crie um arquivo .py com o conteúdo do arquivo /app/main.py. Ele será nossa aplicação.
@@ -106,27 +111,71 @@ Esse é o workflow que será responsável por atualizar a imagem no Docker Hub s
 
 ```runs-on: ubuntu-latest``` -> Especifica que esta tarefa deve ser executada em um agente (runner) que utiliza a imagem Ubuntu Linux mais recente.
 
-steps: -> Inicia a sequência de passos para a tarefa, aqui vou deixar somente o nome de cada tarefa para não deixar a documentação tão extensa, vou explicar o que acontece em cada passo.
+build_and_push steps: -> Inicia a sequência de passos para a tarefa, aqui vou deixar somente o nome de cada tarefa para não deixar a documentação tão extensa, vou explicar o que acontece em cada passo.
 
-- name: Checkout Repository  -> Baixa o código-fonte atual (deste repositório) para dentro do agente de execução.
+- ```name: Checkout Repository```  -> Clona o código-fonte atual (deste repositório) para dentro do agente de execução.
 
-- name: Set up Docker Buildx -> Configura o Docker Buildx, uma ferramenta que permite construir imagens Docker de forma eficiente.
+- ```name: Set up Docker Buildx``` -> Configura o Docker Buildx, uma ferramenta que permite construir imagens Docker de forma eficiente.
 
-- name: Log in to Docker Hub -> Realiza o login no Docker Hub usando credenciais (usuário e token de acesso) armazenadas de forma segura nas secrets do GitHub.
+- ```name: Log in to Docker Hub``` -> Realiza o login no Docker Hub usando credenciais (usuário e token de acesso) armazenadas de forma segura nas secrets do GitHub.
 
-- name: Build and push Docker image -> Constrói a imagem a partir do diretório atual (context: .), a envia (push: true) e aplica duas tags: a tag latest (mais recente) e uma tag única baseada no número da execução do workflow (github.run_number).
+- ```name: Build and push Docker image``` -> Constrói a imagem a partir do diretório atual (context: .), a envia (push: true) e aplica duas tags: a tag latest (mais recente) e uma tag única baseada no número da execução do workflow (github.run_number).
 
-- name: Checkout Manifests Repository -> Baixa um repositório Git diferente (o repositório de manifestos, que contém arquivos de deploy como YAML do Kubernetes) e coloca o conteúdo em uma pasta chamada manifests. Usa um Personal Access Token para autenticação.
+update_manifests steps: -> Atualiza o repositório com manifests. Depende do primeiro job para que seja executado, isso garante que só iniciará a execução desse job quando o primeiro acabar.
 
-- name: Update image tag in manifest -> Executa um comando sed para editar o arquivo manifests/hello-app.yaml, substituindo a tag da imagem Docker antiga pela nova tag gerada no build (github.run_number).
+- ```name: Checkout Manifests Repository``` -> Baixa um repositório Git diferente (o repositório de manifestos, que contém arquivos de deploy como YAML do Kubernetes).
 
-- name: Create Pull Request -> Cria um Pull Request (PR) no repositório de manifestos com a alteração da tag da imagem.
+- ```name: Update image tag in manifest``` -> Executa um comando sed para editar o arquivo manifests/hello-app.yaml, substituindo a tag da imagem Docker antiga pela nova tag gerada no build (github.run_number).
 
-## Etapa 4: Configurando o manifest
+- ```name: Create Pull Request```  -> Cria um Pull Request (PR) no repositório de manifestos com a alteração da tag da imagem.
 
-## Etapa 5: Configurando o workflow
+## Etapa 4: Configurando o repositório dos manifests
 
-## Etapa 6: Configurando o ArgoCD
+Para o repositório dos manifests, precisamos configurar dois arquivos diferentes. 
+
+### Arquivo auto-merge.yaml
+Esse é o workflow que vai fazer o merge quando uma PR tiver o nome que comece com **update-hello-app-image-** conforme o workflow do repositório da aplicação.
+
+```pull_request_target:``` -> Se a branch for alvo de pull request, executar o workflow.
+
+```permissions:``` -> Define as permissões para o job.
+
+auto-merge steps: -> Clona e faz merge no repositório.
+
+```name: Checkout Repository``` -> Fazer o clone do repositório.
+
+```name: Enable Auto-Merge``` -> Fazer merge da pull request alvo.
+
+### Arquivo deploy.yaml
+
+```kind: Deployment```  -> Define um recurso de Deployment chamado hello-app-deployment.
+
+```spec: replicas: 2``` -> Garante que 2 cópias (réplicas) da aplicação estejam sempre em execução.
+
+```selector: matchLabels: app: hello-app``` -> Especifica que o Deployment irá gerenciar Pods com o label app: hello-app.
+
+```template: metadata: labels: app: hello-app``` -> Define o template para os Pods com o label app: hello-app.
+
+```containers: - name: hello-app-container``` -> Define um container chamado hello-app-container dentro do Pod.
+
+```image: gelleres/hello-app:10``` -> Usa a imagem Docker gelleres/hello-app:10.
+
+```ports: - containerPort: 80``` -> Indica que o container está ouvindo na porta 80.
+
+
+```kind: Service``` -> Define um recurso de Service chamado hello-app-service.
+
+```spec: selector: app: hello-app``` -> O Service irá direcionar o tráfego para os Pods com o label app: hello-app (os Pods criados pelo Deployment).
+
+```ports: - protocol: TCP``` -> Usa o protocolo TCP.
+
+```port: 8080``` -> O Service é acessível externamente na porta 8080.
+
+```targetPort: 80``` -> O tráfego recebido na porta 8080 será encaminhado para a porta 80 dos containers (onde a aplicação está rodando).
+
+```type: LoadBalancer``` -> Define que o Service será exposto usando um balanceador de carga.
+
+## Etapa 5: Configurando o ArgoCD
 Antes de rodar a aplicação, precisamos criar o namespace onde os pods ficarão. Para isso, execute ```kubectl create namespace hello-app```
 
 Ao entrar no ArgoCD, clique em Create Application e clique para editar como yaml. Copie o conteúdo do arquivo **argocd-config.yaml** e cole na parte correta. Após isso, clique em Create.
@@ -135,4 +184,4 @@ Ao entrar no ArgoCD, clique em Create Application e clique para editar como yaml
 
 Assim, sua aplicação estará rodando no kubernetes. Para acessá-la, use o comando abaixo e acesse em **http://localhost:8080**
 
-```kubectl port-forward svc/hello-app-service 8080:8080 -n hello-app```
+```kubectl port-forward svc/hello-app-service 800:8080 -n hello-app```

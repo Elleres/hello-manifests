@@ -7,9 +7,13 @@ spec:
     namespace: hello-app
     server: https://kubernetes.default.svc
   source:
-    path: /manifests
-    repoURL: Seu repositório Github!
+    path: manifests
+    repoURL: https://github.com/Elleres/hello-manifests
     targetRevision: HEAD
+    directory:
+      jsonnet:
+        tlas:
+          - {}
   sources: []
   project: default
   syncPolicy:
