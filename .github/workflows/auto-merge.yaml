@@ -16,6 +16,8 @@ jobs:
       contents: write 
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
       - name: Enable Auto-Merge
         env:
           GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }} 
