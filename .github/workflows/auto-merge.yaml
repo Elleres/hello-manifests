@@ -1,0 +1,27 @@
+name: Auto Merge PR
+
+on:
+  pull_request_target:
+    types: [opened, synchronize] 
+
+jobs:
+  auto_merge:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      pull-requests: write
+      contents: write 
+
+    steps:
+      - name: Check PR Title
+        if: startsWith(github.event.pull_request.title, 'Atualiza a imagem hello-app para a versão')
+        run: |
+          echo "PR title matches pattern. Proceeding with auto-merge setup."
+
+      - name: Enable Auto-Merge
+        if: steps.check-title.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }} 
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr merge "$PR_URL" --auto --squash
