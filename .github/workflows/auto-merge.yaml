@@ -3,6 +3,7 @@ name: Auto Merge PR
 on:
   pull_request_target:
     types: [opened, synchronize] 
+  workflow_dispatch:
 
 jobs:
   auto_merge:
@@ -23,5 +24,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MANIFEST_REPO_PAT }} 
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          gh pr merge "$PR_URL" --auto --squash
+        run: gh pr merge "$PR_URL" --auto --squash
